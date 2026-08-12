@@ -8,6 +8,7 @@ type Data = {
   raid?: string | null
   completed?: boolean
   durationSeconds?: number | null
+  totalClears?: number | null
 }
 
 function duration(seconds: number) {
@@ -53,6 +54,12 @@ export function DestinyStatus() {
           {' — '}
           {data.completed ? '' : 'wiped at '}
           {duration(data.durationSeconds)}
+        </span>
+      ) : null}
+      {data.totalClears != null ? (
+        <span className="dim">
+          {' · '}
+          {data.totalClears} total clears
         </span>
       ) : null}
     </>

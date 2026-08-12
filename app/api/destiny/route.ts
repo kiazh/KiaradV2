@@ -90,6 +90,14 @@ export async function GET() {
 
   if (!latest) return NextResponse.json({ configured: true, found: false })
 
+  // Fetch aggregate raid stats to get total clears
+  const stats = await bungie<{
+    allPvE?: { allTime?: Record<string, { basic: { value: number } }> }
+    raid?: { allTime?: Record<string, { basic: { value: number } }> }
+  }>(`/Destiny2/${type}/Account/${id}/Stats/?groups=1&modes=${RAID_MODE}`, key)
+
+  const totalClears = stats?.raid?.allTime?.activitiesCleared?.basic?.value ?? null
+
   const name = await activityName(latest.activity.activityDetails.referenceId, key)
   const completed = latest.activity.values?.completed?.basic?.value === 1
   const durationSeconds = latest.activity.values?.activityDurationSeconds?.basic?.value ?? null
@@ -101,5 +109,6 @@ export async function GET() {
     completed,
     period: latest.activity.period,
     durationSeconds,
+    totalClears,
   })
 }
