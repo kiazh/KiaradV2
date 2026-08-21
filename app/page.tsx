@@ -2,6 +2,10 @@ import { Nav } from '@/components/Nav'
 import { HomeContent } from '@/components/sections/HomeContent'
 import { Footer } from '@/components/Footer'
 
+// Regenerate the page on the same cadence as the Destiny player data so the
+// pre-rendered HTML never carries a stale raid/clear count for long.
+export const revalidate = 600
+
 export default function Home() {
   return (
     <main style={{ maxWidth: '640px', margin: '0 auto', padding: '0 24px', minHeight: '100vh' }}>

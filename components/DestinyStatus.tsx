@@ -1,15 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { DestinyStatusData } from '@/lib/destiny'
 
-type Data = {
-  configured: boolean
-  found?: boolean
-  raid?: string | null
-  completed?: boolean
-  durationSeconds?: number | null
-  totalClears?: number | null
-}
+const RAID_REPORT = 'https://raid.report/xb/4611686018497291008'
+
+const STORAGE_KEY = 'destiny-status-v1'
+/** Don't resurrect a cached value older than this (ms). */
+const MAX_CACHE_AGE = 7 * 24 * 60 * 60 * 1000
 
 function duration(seconds: number) {
   const m = Math.round(seconds / 60)
@@ -19,22 +17,64 @@ function duration(seconds: number) {
   return rem ? `${h}h ${rem}m` : `${h}h`
 }
 
-const RAID_REPORT = 'https://raid.report/xb/4611686018497291008'
+function isUsable(d: DestinyStatusData | null): d is DestinyStatusData {
+  return !!d && d.configured && d.found === true && !!d.raid
+}
 
-export function DestinyStatus() {
-  const [data, setData] = useState<Data | null>(null)
+function readCache(): DestinyStatusData | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { savedAt: number; data: DestinyStatusData }
+    if (!parsed?.savedAt || Date.now() - parsed.savedAt > MAX_CACHE_AGE) return null
+    return isUsable(parsed.data) ? parsed.data : null
+  } catch {
+    return null
+  }
+}
+
+function writeCache(data: DestinyStatusData) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ savedAt: Date.now(), data }))
+  } catch {
+    // localStorage can be unavailable (private mode, quota) — non-fatal.
+  }
+}
+
+export function DestinyStatus({ initial = null }: { initial?: DestinyStatusData | null }) {
+  // Seed from the server-rendered value so the first paint already has real
+  // data and the markup matches the SSR output exactly (no hydration mismatch).
+  const [data, setData] = useState<DestinyStatusData | null>(initial)
 
   useEffect(() => {
+    // If the server couldn't supply data (Bungie down at build/request time),
+    // fall back to the last value this browser saw. Runs after hydration, so
+    // it cannot cause a mismatch.
+    if (!isUsable(initial)) {
+      const cached = readCache()
+      if (cached) setData(cached)
+    } else {
+      writeCache(initial)
+    }
+
     const ctrl = new AbortController()
+
     fetch('/api/destiny', { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : null))
-      .then(setData)
+      .then((fresh: DestinyStatusData | null) => {
+        // Never downgrade a good value into the bare fallback.
+        if (isUsable(fresh)) {
+          setData(fresh)
+          writeCache(fresh)
+        }
+      })
       .catch(() => {})
-    return () => ctrl.abort()
-  }, [])
 
-  // No key / no data yet → plain link, no broken UI
-  if (!data?.configured || !data.found || !data.raid) {
+    return () => ctrl.abort()
+  }, [initial])
+
+  // No key / nothing cached anywhere → plain link, no broken UI
+  if (!isUsable(data)) {
     return (
       <a href={RAID_REPORT} target="_blank" rel="noopener noreferrer" className="link-underline">
         Destiny 2

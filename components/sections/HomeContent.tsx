@@ -1,9 +1,14 @@
 import Link from 'next/link'
 import { currently, recently } from '@/lib/content'
+import { getDestinyStatus } from '@/lib/destiny'
 import { DestinyStatus } from '@/components/DestinyStatus'
 import { Intro } from '@/components/Intro'
 
-export function HomeContent() {
+export async function HomeContent() {
+  // Fetched on the server (cached, shared across all visitors) so the raid name
+  // and clear count ship in the initial HTML instead of popping in after mount.
+  const destiny = await getDestinyStatus()
+
   return (
     <>
       <span
@@ -43,7 +48,7 @@ export function HomeContent() {
           <ul className="rows">
             <li className="row">
               <span className="row-label">raid</span>
-              <span className="row-value"><DestinyStatus /></span>
+              <span className="row-value"><DestinyStatus initial={destiny} /></span>
             </li>
             {recently.map((item) => (
               <Row key={item.value} label={item.label} value={item.value} href={item.href} />
