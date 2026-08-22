@@ -30,7 +30,7 @@ export default function InterestsPage() {
         </h1>
 
         <p className="reveal reveal-1" style={{ color: 'var(--fg)', fontSize: '15px', lineHeight: 1.7, maxWidth: '56ch', marginBottom: 'var(--s6)' }}>
-          The stuff I actually spend my time thinking about when I'm not doing coursework.
+          The stuff I actually spend my time thinking about when I&apos;m not doing coursework.
         </p>
 
         <div className="reveal reveal-2">

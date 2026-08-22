@@ -75,13 +75,17 @@ export function DestinyStatus({ initial = null }: { initial?: DestinyStatusData 
     let lastFetch = 0
     const ctrl = new AbortController()
 
-    // The SSR seed comes from a page that may have been generated up to a TTL
-    // ago, so reconcile it against whatever this browser already had and keep
-    // whichever is newer. Runs post-hydration, so it can't cause a mismatch.
-    const stored = readCache()
-    const best = pickNewer(initial, stored)
-    if (best && best !== initial) setData(best)
+    // The SSR seed is already the common case, so persist it and let the live
+    // fetch below correct anything newer.
     if (isUsable(initial)) writeCacheIfNewer(initial)
+
+    // Only used when the network can't give us anything better, so a visitor
+    // returning offline still sees the last value instead of the bare label.
+    const fallBackToCache = () => {
+      const stored = readCache()
+      if (!stored || cancelled) return
+      setData((prev) => pickNewer(stored, prev) ?? stored)
+    }
 
     const load = async () => {
       if (Date.now() - lastFetch < 5000) return
@@ -91,14 +95,23 @@ export function DestinyStatus({ initial = null }: { initial?: DestinyStatusData 
         // no-store: the browser must not replay an earlier response, which was
         // part of why reloads kept showing the same frozen numbers.
         const res = await fetch('/api/destiny', { cache: 'no-store', signal: ctrl.signal })
-        if (!res.ok) return
+        if (!res.ok) {
+          fallBackToCache()
+          return
+        }
         const fresh = (await res.json()) as DestinyStatusData
-        if (cancelled || !isUsable(fresh)) return
+        if (cancelled) return
+
+        if (!isUsable(fresh)) {
+          fallBackToCache()
+          return
+        }
 
         setData((prev) => pickNewer(fresh, prev) ?? fresh)
         writeCacheIfNewer(fresh)
       } catch {
         // Offline / aborted / bad JSON — keep showing what we have.
+        fallBackToCache()
       }
     }
 

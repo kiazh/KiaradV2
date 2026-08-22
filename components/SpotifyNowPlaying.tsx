@@ -58,10 +58,11 @@ export function SpotifyNowPlaying() {
   const [spotify, setSpotify] = useState<SpotifyData | null>(null)
   const [discordUsername, setDiscordUsername] = useState<string>('')
   const [discordStatus, setDiscordStatus] = useState<string>('offline')
-  const [progress, setProgress] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
   const [currentTime, setCurrentTime] = useState(formatCurrentTime())
   const [isLoading, setIsLoading] = useState(true)
+  // Progress is derived from this timestamp rather than stored separately, so
+  // there is no second copy of state to drift. 0 means "not sampled yet".
+  const [now, setNow] = useState(0)
 
   // Derived primitives so the progress ticker only restarts when the actual
   // track window changes — not on every presence message.
@@ -233,33 +234,25 @@ export function SpotifyNowPlaying() {
     }
   }, [])
 
-  // Update current time every second
+  // Update current time every second. Initial state already holds the current
+  // value, so there is nothing to set synchronously here.
   useEffect(() => {
-    const timeTick = () => setCurrentTime(formatCurrentTime())
-    timeTick()
-    const id = setInterval(timeTick, 1000)
+    const id = setInterval(() => setCurrentTime(formatCurrentTime()), 1000)
     return () => clearInterval(id)
   }, [])
 
-  // Tick progress every second using timestamps from the API
+  // Sample the clock once a second while a track is playing. Reading it here
+  // rather than during render keeps the component pure. No timer runs when
+  // nothing is playing.
   useEffect(() => {
-    if (start == null || end == null) {
-      setElapsed(0)
-      setProgress(0)
-      return
+    if (start == null || end == null) return
+    // Kick immediately so the bar doesn't sit at zero for the first second.
+    const kick = setTimeout(() => setNow(Date.now()), 0)
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => {
+      clearTimeout(kick)
+      clearInterval(id)
     }
-
-    const tick = () => {
-      const total = end - start
-      if (total <= 0) return
-      const current = Math.min(Date.now() - start, total)
-      setElapsed(current)
-      setProgress(current / total)
-    }
-
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
   }, [start, end])
 
   const widgetStyle = {
@@ -305,6 +298,12 @@ export function SpotifyNowPlaying() {
   }
 
   const duration = start != null && end != null ? end - start : 0
+  // Pure derivation from the sampled timestamp — no clock read during render.
+  const elapsed =
+    duration > 0 && start != null && now > 0
+      ? Math.min(Math.max(now - start, 0), duration)
+      : 0
+  const progress = duration > 0 ? elapsed / duration : 0
 
   return (
     <div className="spotify-widget" style={widgetStyle}>

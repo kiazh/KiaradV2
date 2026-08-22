@@ -30,7 +30,7 @@ export default function WorkPage() {
         </h1>
 
         <p className="reveal reveal-1" style={{ color: 'var(--fg)', fontSize: '15px', lineHeight: 1.7, maxWidth: '56ch', marginBottom: 'var(--s6)' }}>
-          Most of my interests revolve around understanding systems at a fundamental level, whether that's physics, embedded systems, philosophy, or machine learning. Well I can larp and say I hate abstractions...
+          Most of my interests revolve around understanding systems at a fundamental level, whether that&apos;s physics, embedded systems, philosophy, or machine learning. Well I can larp and say I hate abstractions...
         </p>
 
         <ul className="reveal reveal-2" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--s5)' }}>
