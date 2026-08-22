@@ -113,7 +113,12 @@ export async function getDestinyStatus(): Promise<DestinyStatusData> {
         key,
       ),
       bungie<Record<string, { allTime?: Record<string, { basic: { value: number } }> }>>(
-        // characterId 0 = account-wide aggregate
+        // characterId 0 = account-wide aggregate.
+        //
+        // Verified against Bungie directly: this reports 537 clears, whereas
+        // summing the three live characters gives 492. The 45-clear gap is
+        // clears earned on since-deleted characters, which only the account-wide
+        // aggregate retains. Do not "fix" this to a per-character sum.
         `/Destiny2/${type}/Account/${id}/Character/0/Stats/?groups=1&modes=${RAID_MODE}`,
         key,
       ),
