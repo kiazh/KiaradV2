@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
 interface SpotifyData {
   track: string
@@ -9,24 +9,32 @@ interface SpotifyData {
   timestamps: { start: number; end: number } | null
 }
 
-interface LanyardData {
-  success: boolean
-  data?: {
-    spotify?: {
-      song: string
-      artist: string
-      track_id: string
-      timestamps?: { start: number; end: number }
-    }
-    discord_user?: {
-      username: string
-    }
-  }
+interface LanyardPresence {
+  listening_to_spotify?: boolean
+  discord_status?: string
+  spotify?: {
+    song: string
+    artist: string
+    track_id: string
+    timestamps?: { start: number; end: number }
+  } | null
+  discord_user?: { username: string }
 }
 
-const LANYARD_API = 'https://api.lanyard.rest/v1/users/431549003449237505'
-const FETCH_TIMEOUT = 10000
-const POLL_INTERVAL = 30000
+const USER_ID = '431549003449237505'
+const LANYARD_REST = `https://api.lanyard.rest/v1/users/${USER_ID}`
+const LANYARD_WS = 'wss://api.lanyard.rest/socket'
+
+// Lanyard opcodes
+const OP_EVENT = 0
+const OP_HELLO = 1
+const OP_INITIALIZE = 2
+const OP_HEARTBEAT = 3
+
+/** Only used while the socket is unavailable. */
+const FALLBACK_POLL_MS = 20000
+/** focus and visibilitychange both fire on one refocus — collapse them. */
+const WAKE_THROTTLE_MS = 5000
 const MAX_CHARS = 30
 
 function formatTime(ms: number): string {
@@ -49,74 +57,179 @@ function truncate(text: string, maxLength: number): string {
 export function SpotifyNowPlaying() {
   const [spotify, setSpotify] = useState<SpotifyData | null>(null)
   const [discordUsername, setDiscordUsername] = useState<string>('')
+  const [discordStatus, setDiscordStatus] = useState<string>('offline')
   const [progress, setProgress] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [currentTime, setCurrentTime] = useState(formatCurrentTime())
   const [isLoading, setIsLoading] = useState(true)
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const timeRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
 
-  const fetchWithTimeout = async (url: string, externalSignal?: AbortSignal): Promise<Response> => {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
-    externalSignal?.addEventListener('abort', () => controller.abort())
+  // Derived primitives so the progress ticker only restarts when the actual
+  // track window changes — not on every presence message.
+  const start = spotify?.timestamps?.start ?? null
+  const end = spotify?.timestamps?.end ?? null
 
-    try {
-      const response = await fetch(url, { signal: controller.signal })
-      clearTimeout(timeoutId)
-      return response
-    } catch (err) {
-      clearTimeout(timeoutId)
-      throw err
-    }
-  }
+  // Live presence over Lanyard's WebSocket.
+  //
+  // Polling alone could not keep this current: browsers throttle or freeze
+  // setInterval in hidden/background tabs, so changing songs in Spotify (which
+  // backgrounds the tab) left the widget stale until a manual reload. A socket
+  // is pushed to, and we additionally resync whenever the tab is refocused.
+  useEffect(() => {
+    let ws: WebSocket | null = null
+    let heartbeat: ReturnType<typeof setInterval> | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let pollTimer: ReturnType<typeof setInterval> | null = null
+    let attempts = 0
+    let unmounted = false
+    let lastSync = 0
 
-  const fetchSpotify = async () => {
-    if (abortControllerRef.current?.signal.aborted) return
+    const apply = (d: LanyardPresence | undefined) => {
+      if (unmounted || !d) return
 
-    try {
-      const res = await fetchWithTimeout(LANYARD_API, abortControllerRef.current?.signal)
-      const data: LanyardData = await res.json()
+      if (d.discord_user?.username) setDiscordUsername(d.discord_user.username)
+      setDiscordStatus(d.discord_status ?? 'offline')
 
-      if (data.success) {
-        if (data.data?.discord_user?.username) {
-          setDiscordUsername(data.data.discord_user.username)
-        }
-        if (data.data?.spotify) {
-          const s = data.data.spotify
-          setSpotify({
-            track: s.song,
-            artist: s.artist,
-            url: `https://open.spotify.com/track/${s.track_id}`,
-            timestamps: s.timestamps ?? null,
-          })
-        } else {
-          setSpotify(null)
-        }
+      if (d.listening_to_spotify && d.spotify) {
+        const s = d.spotify
+        setSpotify({
+          track: s.song,
+          artist: s.artist,
+          url: `https://open.spotify.com/track/${s.track_id}`,
+          timestamps: s.timestamps ?? null,
+        })
       } else {
         setSpotify(null)
       }
       setIsLoading(false)
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
+    }
+
+    const pollOnce = async () => {
+      lastSync = Date.now()
+      try {
+        const res = await fetch(LANYARD_REST, { cache: 'no-store' })
+        if (!res.ok) return
+        const json = await res.json()
+        if (json?.success) apply(json.data as LanyardPresence)
+      } catch {
+        // Offline or blocked — keep showing the last known state.
+      }
+    }
+
+    const startPolling = () => {
+      if (pollTimer || unmounted) return
+      void pollOnce()
+      pollTimer = setInterval(pollOnce, FALLBACK_POLL_MS)
+    }
+
+    const stopPolling = () => {
+      if (pollTimer) clearInterval(pollTimer)
+      pollTimer = null
+    }
+
+    const clearHeartbeat = () => {
+      if (heartbeat) clearInterval(heartbeat)
+      heartbeat = null
+    }
+
+    const connect = () => {
+      if (unmounted) return
+
+      try {
+        ws = new WebSocket(LANYARD_WS)
+      } catch {
+        // WebSocket blocked entirely (some proxies) — degrade to polling.
+        startPolling()
         return
       }
-      setIsLoading(false)
-    }
-  }
 
-  useEffect(() => {
-    abortControllerRef.current = new AbortController()
-    fetchSpotify()
-    pollRef.current = setInterval(fetchSpotify, POLL_INTERVAL)
+      ws.onmessage = (event) => {
+        let msg: { op: number; d?: unknown; t?: string }
+        try {
+          msg = JSON.parse(event.data as string)
+        } catch {
+          return
+        }
+
+        if (msg.op === OP_HELLO) {
+          // Socket is healthy: drop the fallback poller and subscribe.
+          attempts = 0
+          stopPolling()
+          const interval = (msg.d as { heartbeat_interval?: number })?.heartbeat_interval ?? 30000
+          ws?.send(JSON.stringify({ op: OP_INITIALIZE, d: { subscribe_to_id: USER_ID } }))
+          clearHeartbeat()
+          heartbeat = setInterval(() => {
+            if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ op: OP_HEARTBEAT }))
+          }, interval)
+          return
+        }
+
+        // Covers both INIT_STATE and PRESENCE_UPDATE.
+        if (msg.op === OP_EVENT) apply(msg.d as LanyardPresence)
+      }
+
+      ws.onerror = () => {
+        try {
+          ws?.close()
+        } catch {
+          // onclose handles retry
+        }
+      }
+
+      ws.onclose = () => {
+        clearHeartbeat()
+        if (unmounted) return
+
+        attempts += 1
+        // Keep the widget moving while the socket is down.
+        if (attempts >= 2) startPolling()
+
+        const backoff = Math.min(30000, 1000 * 2 ** Math.min(attempts, 5))
+        reconnectTimer = setTimeout(connect, backoff + Math.random() * 500)
+      }
+    }
+
+    connect()
+
+    // Returning to the tab must not wait on a backoff timer or a throttled poll.
+    const onWake = () => {
+      if (unmounted || document.visibilityState !== 'visible') return
+
+      const dead =
+        !ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING
+
+      if (dead) {
+        if (reconnectTimer) clearTimeout(reconnectTimer)
+        reconnectTimer = null
+        attempts = 0
+        connect()
+      } else {
+        // Socket looks alive but may have missed events while hidden.
+        // focus and visibilitychange both fire on a single refocus, so throttle.
+        if (Date.now() - lastSync > WAKE_THROTTLE_MS) void pollOnce()
+      }
+    }
+
+    document.addEventListener('visibilitychange', onWake)
+    window.addEventListener('focus', onWake)
 
     return () => {
-      abortControllerRef.current?.abort()
-      if (pollRef.current) clearInterval(pollRef.current)
-      if (tickRef.current) clearInterval(tickRef.current)
-      if (timeRef.current) clearInterval(timeRef.current)
+      unmounted = true
+      document.removeEventListener('visibilitychange', onWake)
+      window.removeEventListener('focus', onWake)
+      clearHeartbeat()
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      stopPolling()
+      if (ws) {
+        // Detach first so teardown doesn't schedule a reconnect.
+        ws.onclose = null
+        ws.onerror = null
+        ws.onmessage = null
+        try {
+          ws.close()
+        } catch {
+          // already closing
+        }
+      }
     }
   }, [])
 
@@ -124,31 +237,30 @@ export function SpotifyNowPlaying() {
   useEffect(() => {
     const timeTick = () => setCurrentTime(formatCurrentTime())
     timeTick()
-    timeRef.current = setInterval(timeTick, 1000)
-    return () => {
-      if (timeRef.current) clearInterval(timeRef.current)
-    }
+    const id = setInterval(timeTick, 1000)
+    return () => clearInterval(id)
   }, [])
 
-  // tick progress every second using timestamps from API
+  // Tick progress every second using timestamps from the API
   useEffect(() => {
-    if (tickRef.current) clearInterval(tickRef.current)
-    if (!spotify?.timestamps) return
+    if (start == null || end == null) {
+      setElapsed(0)
+      setProgress(0)
+      return
+    }
 
     const tick = () => {
-      const { start, end } = spotify.timestamps!
-      const duration = end - start
-      const current = Math.min(Date.now() - start, duration)
+      const total = end - start
+      if (total <= 0) return
+      const current = Math.min(Date.now() - start, total)
       setElapsed(current)
-      setProgress(current / duration)
+      setProgress(current / total)
     }
 
     tick()
-    tickRef.current = setInterval(tick, 1000)
-    return () => {
-      if (tickRef.current) clearInterval(tickRef.current)
-    }
-  }, [spotify])
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [start, end])
 
   const widgetStyle = {
     position: 'fixed' as const,
@@ -186,13 +298,13 @@ export function SpotifyNowPlaying() {
           fontSize: '14px',
           marginTop: '2px',
         }}>
-          offline · {currentTime}
+          {discordStatus} · {currentTime}
         </span>
       </div>
     )
   }
 
-  const duration = spotify.timestamps ? spotify.timestamps.end - spotify.timestamps.start : 0
+  const duration = start != null && end != null ? end - start : 0
 
   return (
     <div className="spotify-widget" style={widgetStyle}>
