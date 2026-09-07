@@ -111,7 +111,7 @@ export type CurrentItem = {
 
 export const currently: CurrentItem[] = [
   {
-    label: 'job 💔',
+    label: 'job',
     value: 'ML research @ UofT',
     href: 'https://cadipt.mie.utoronto.ca/'
   },
