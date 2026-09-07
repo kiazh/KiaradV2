@@ -125,8 +125,9 @@ export const currently: CurrentItem[] = [
     value: 'More abt ML',
   },
   {
-    label: 'playing',
-    value: 'Destiny 2',
+    label: 'Resume',
+    value: 'Click Me!',
+    href: 'https://drive.google.com/file/d/1_3FkqOvbyEaIK82i-hqOXIBIyZ83Ws48/view?usp=sharing',
   },
 ]
 
