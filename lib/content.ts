@@ -127,7 +127,7 @@ export const currently: CurrentItem[] = [
   {
     label: 'Resume',
     value: 'Click Me!',
-    href: 'https://drive.google.com/file/d/1_3FkqOvbyEaIK82i-hqOXIBIyZ83Ws48/view?usp=sharing',
+    href: 'https://drive.google.com/file/d/1oBM84_1JT2yst7Qjnov4p4CoKArOSNee/view?usp=sharing',
   },
 ]
 
