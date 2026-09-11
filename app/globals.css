@@ -468,10 +468,6 @@ a {
 .intro-name {
   cursor: pointer;
   color: var(--accent);
-  text-shadow:
-    0 0 4px color-mix(in oklch, var(--accent) 38%, transparent),
-    0 0 12px color-mix(in oklch, var(--accent) 22%, transparent),
-    0 0 22px color-mix(in oklch, var(--accent) 10%, transparent);
 }
 
 /* Tagline under the name. Carries the rest of the gap down to the first
