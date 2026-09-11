@@ -107,6 +107,8 @@ export type CurrentItem = {
   label: string
   value: string
   href?: string
+  /** Draws extra visual attention — reserved for the one link recruiters most need to find. */
+  emphasize?: boolean
 }
 
 export const currently: CurrentItem[] = [
@@ -125,9 +127,10 @@ export const currently: CurrentItem[] = [
     value: 'More abt ML',
   },
   {
-    label: 'Resume',
-    value: 'Click Me!',
+    label: 'resume',
+    value: 'view resume',
     href: 'https://drive.google.com/file/d/1WJxcJ6ysr_2iMi46qglnD7nqh4OGIxkt/view?usp=sharing',
+    emphasize: true,
   },
 ]
 

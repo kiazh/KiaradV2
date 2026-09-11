@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { interests, tabs, type Tab } from '@/lib/content'
+import { ScrambleText } from '@/components/ScrambleText'
 
 export function InterestsFull() {
   const [active, setActive] = useState<Tab>('anime')
@@ -21,7 +22,7 @@ export function InterestsFull() {
             className="interest-tab"
             data-active={active === tab}
           >
-            {interests[tab].label}
+            <ScrambleText text={interests[tab].label} />
           </button>
         ))}
       </div>
@@ -44,7 +45,7 @@ export function InterestsFull() {
             {current.items.map((item) => (
               <li key={item.title} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <span style={{ color: 'var(--fg)', fontSize: '15px', fontWeight: 500 }}>
-                  {item.title}
+                  <ScrambleText text={item.title} />
                 </span>
                 {item.note && (
                   <span style={{ color: 'var(--muted)', fontSize: '14px', lineHeight: 1.65 }}>

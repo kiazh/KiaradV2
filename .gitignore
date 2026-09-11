@@ -50,9 +50,8 @@ dev-server-err.log
 dev.log
 dev-err.log
 
-# local-only working notes (contain private context - do not publish)
-HANDOFF.md
-DESIGN_BRIEF.md
+# markdown files — no AI-tool/process docs or notes tracked in the repo
+*.md
 
 # local verification scripts
 *-probe.mjs

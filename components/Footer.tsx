@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { ScrambleText } from '@/components/ScrambleText'
 
 const socialLinks = [
   { href: 'https://github.com/kiazh', label: 'github' },
@@ -36,7 +37,8 @@ export function Footer() {
             className="nav-link"
             style={{ fontSize: '13px' }}
           >
-            {link.label}
+            <ScrambleText text={link.label} />
+            <span className="ext" aria-hidden="true">↗</span>
           </a>
         ))}
       </div>

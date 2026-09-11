@@ -313,7 +313,12 @@ export function SpotifyNowPlaying() {
         target="_blank"
         rel="noopener noreferrer"
         style={{
-          color: 'var(--fg)',
+          color: 'var(--accent)',
+          textShadow: [
+            '0 0 4px color-mix(in oklch, var(--accent) 38%, transparent)',
+            '0 0 12px color-mix(in oklch, var(--accent) 22%, transparent)',
+            '0 0 22px color-mix(in oklch, var(--accent) 10%, transparent)',
+          ].join(', '),
           fontSize: '18px',
           fontWeight: 500,
           textDecoration: 'none',
@@ -321,10 +326,10 @@ export function SpotifyNowPlaying() {
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          transition: 'color 0.15s ease',
+          transition: 'text-decoration-color 0.15s ease',
         }}
-        onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--muted)')}
-        onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--fg)')}
+        onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline')}
+        onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none')}
       >
         {truncate(spotify.track, MAX_CHARS)}
       </a>

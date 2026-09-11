@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Command } from 'cmdk'
-import { useTheme } from 'next-themes'
 
 type Action = {
   id: string
@@ -28,7 +27,6 @@ const connectLinks = [
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
   const router = useRouter()
 
   const close = useCallback(() => setOpen(false), [])
@@ -64,11 +62,6 @@ export function CommandPalette() {
     }
     close()
   }, [close])
-
-  const toggleTheme = useCallback(() => {
-    setTheme(theme === 'dark' ? 'light' : 'dark')
-    close()
-  }, [theme, setTheme, close])
 
   const navActions: Action[] = navTargets.map((s) => ({
     id: s.id,
@@ -143,16 +136,6 @@ export function CommandPalette() {
           {connectActions.map((a) => (
             <PaletteItem key={a.id} action={a} />
           ))}
-        </Command.Group>
-
-        <Command.Group heading={<CommandGroupLabel>theme</CommandGroupLabel>}>
-          <PaletteItem
-            action={{
-              id: 'theme',
-              label: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
-              onSelect: toggleTheme,
-            }}
-          />
         </Command.Group>
       </Command.List>
     </Command.Dialog>

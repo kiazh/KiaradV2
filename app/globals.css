@@ -1,11 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --bg: oklch(98% 0.004 70);
-  --fg: oklch(18% 0.008 60);
-  --muted: oklch(50% 0.012 60);
-  --border: oklch(89% 0.008 70);
-  --accent: oklch(55% 0.19 45);
+  /* Actual forest theme: the background itself is a deep pine-green dark,
+     not a colorless gray with a green accent sprinkled on top — the
+     previous version kept the ground neutral and only tinted individual
+     elements, which never reads as "a forest," just as gray UI with green
+     text. Warm amber-gold (sunlight through canopy, campfire) carries
+     anything interactive — links, nav, the resume highlight; a lighter
+     moss green carries ambient/identity flavor — the sidebar's terminal-
+     prompt username, its flowing light. Lighter dark on purpose, still:
+     the ground doesn't need to go near-black to read as dark and stays
+     easier on the eyes at this lightness. */
+  --bg: #031F0D;
+  --fg: oklch(93% 0.014 105);
+  --muted: oklch(65% 0.022 140);
+  --border: oklch(35% 0.032 148);
+  --accent: #ded359;
+  --accent-2: oklch(71% 0.085 140);
 
   /* spacing scale — 4-unit base, no one-off values */
   --s1: 4px;
@@ -16,14 +27,6 @@
   --s6: 32px;
   --s7: 48px;
   --s8: 64px;
-}
-
-.dark {
-  --bg: oklch(14% 0.006 60);
-  --fg: oklch(93% 0.006 70);
-  --muted: oklch(63% 0.012 60);
-  --border: oklch(25% 0.01 60);
-  --accent: oklch(75% 0.16 55);
 }
 
 * {
@@ -110,6 +113,104 @@ a {
   }
 }
 
+/* ── Skip link: first focusable element in the DOM, invisible until a
+   keyboard user tabs to it — lets that user jump past the sidebar's 3 nav
+   links + Cmd+K button straight to page content instead of re-tabbing
+   through the rail on every route. ── */
+
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: var(--s4);
+  z-index: 200;
+  background: var(--bg);
+  color: var(--accent);
+  padding: var(--s2) var(--s4);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus-visible {
+  top: var(--s3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
+
+/* ── Bonsai: real cbonsai output as ambient scenery in the bottom-right,
+   dissolved into the background.
+
+   Colour follows cbonsai's own four-material scheme (dark/bright x leaf/wood,
+   plus a rim text colour), but hued from this site's own tokens rather than
+   given its own palette: foliage from --accent-2 (moss), wood from --accent,
+   each with a darkened tier for the material's shadowed face. Within a
+   material, dark and bright are lightness steps of one hue — that is what
+   cbonsai's two-tier-per-material palette actually encodes.
+
+   One flat opacity across the whole tree, deliberately: this is scenery, so
+   nothing in it competes for attention and the whole thing reads as a single
+   quiet green wash. (Per-role alpha, which lets the branches carry far more
+   weight than the foliage, is the other way to run this — see git history.)
+
+   A mask dissolves the crown upward so the tree emerges out of the background
+   instead of ending on a straight horizontal edge.
+
+   Size scales with the viewport: the art is a fixed 72x29 character grid, so
+   font-size is the only size dial. clamp lets it grow on a large display
+   without overflowing a laptop screen.
+
+   Hidden below 1200px: under that width the centered 1000px shell leaves too
+   little free viewport margin, and the tree would wash under body copy. ── */
+
+.bonsai-ghost {
+  /* foliage from the site's moss green, wood from its accent — each with a
+     darkened tier for the shadowed face of that material */
+  --bn-leaf-dark: color-mix(in oklch, var(--accent-2), black 30%);
+  --bn-leaf-bright: var(--accent-2);
+  --bn-wood-dark: color-mix(in oklch, var(--accent), black 34%);
+  --bn-wood-bright: var(--accent);
+  --bn-text: var(--muted);
+
+  position: fixed;
+  right: 8px;
+  bottom: 0;
+  z-index: 0;
+  margin: 0;
+  font-family: var(--font-mono), 'SFMono-Regular', Consolas, monospace;
+  font-size: clamp(12px, 1.05vw, 17px);
+  line-height: 1.12;
+  white-space: pre;
+  color: var(--bn-leaf-dark);
+  /* One flat wash. Low enough to stay background, high enough that the four
+     material tints still resolve as distinct rather than collapsing into one
+     tone — below roughly 0.12 they stop separating. This is the dial. */
+  opacity: 0.15;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  mask-image: linear-gradient(to top, black 46%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, black 46%, transparent 100%);
+}
+
+.bn-ld { color: var(--bn-leaf-dark); }
+.bn-lb { color: var(--bn-leaf-bright); }
+.bn-wd { color: var(--bn-wood-dark); }
+.bn-wb { color: var(--bn-wood-bright); }
+.bn-tx { color: var(--bn-text); }
+
+@media (max-width: 1200px) {
+  .bonsai-ghost {
+    display: none;
+  }
+}
+
 /* ── Command palette (cmdk) ── */
 
 [cmdk-overlay] {
@@ -140,24 +241,6 @@ a {
   background: color-mix(in oklch, var(--bg), var(--border) 45%);
 }
 
-/* ── Kanji ghost: quiet breathing presence, one authored motion moment ── */
-
-@keyframes kanji-breathe {
-  0%, 100% { opacity: 0.07; transform: scale(1); }
-  50%      { opacity: 0.11; transform: scale(1.012); }
-}
-
-.kanji-ghost {
-  animation: kanji-breathe 7s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .kanji-ghost {
-    animation: none;
-    opacity: 0.1;
-  }
-}
-
 /* ── Entrance reveal: staggered, runs once on load ── */
 
 @keyframes reveal-in {
@@ -171,7 +254,6 @@ a {
 
 .reveal-1 { animation-delay: 0.06s; }
 .reveal-2 { animation-delay: 0.12s; }
-.reveal-3 { animation-delay: 0.18s; }
 
 /* ── Caret: fades in and out, holds solid while typing ── */
 
@@ -269,6 +351,11 @@ a {
 
 .nav-link:hover,
 .nav-link:focus-visible {
+  color: var(--fg);
+}
+
+.nav-link:hover .ext,
+.nav-link:focus-visible .ext {
   color: var(--fg);
 }
 
@@ -374,6 +461,19 @@ a {
   gap: var(--s3);
 }
 
+/* Same emission language as the Resume link's glow (see .link-glow below):
+   layered zero-offset shadows in the accent color, steady rather than
+   pulsing. The name is the first thing read on the page, so it gets the
+   same "this matters" treatment as the one link recruiters most need. */
+.intro-name {
+  cursor: pointer;
+  color: var(--accent);
+  text-shadow:
+    0 0 4px color-mix(in oklch, var(--accent) 38%, transparent),
+    0 0 12px color-mix(in oklch, var(--accent) 22%, transparent),
+    0 0 22px color-mix(in oklch, var(--accent) 10%, transparent);
+}
+
 /* Tagline under the name. Carries the rest of the gap down to the first
    section, so total title-to-content spacing stays var(--s6). */
 .page-subtitle {
@@ -445,6 +545,28 @@ a {
   transform: translate(1px, -3px);
 }
 
+/* ── Resume link: the one line recruiters most need to find. The text emits
+   accent light in the same zero-offset glow language the sidebar's bars
+   use — layered shadows so it reads as emission rather than one soft blur.
+   Steady, not pulsing: a repeating brightness cycle on a single line of
+   text reads as a flicker/blink, which draws the eye by irritating it. The
+   color is the accent straight, not mixed toward --fg: in dark mode --fg is
+   near-white, so even a small share of it lifts lightness and strips chroma
+   until the text reads pale rather than purple. ── */
+.link-underline.link-glow {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+  text-shadow:
+    0 0 4px color-mix(in oklch, var(--accent) 38%, transparent),
+    0 0 12px color-mix(in oklch, var(--accent) 22%, transparent),
+    0 0 22px color-mix(in oklch, var(--accent) 10%, transparent);
+}
+
+.link-underline.link-glow .ext {
+  color: var(--accent);
+}
+
 .section {
   margin-top: var(--s7);
 }
@@ -473,5 +595,339 @@ a {
   .row {
     grid-template-columns: 1fr;
     gap: var(--s1);
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   App shell — sidebar + page content centered together as one unit, with
+   breathing room on both sides on wide screens, rather than the sidebar
+   pinned to the raw browser edge while only the content column centers.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --sidebar-w: 240px;
+  --shell-max-w: 1000px;
+}
+
+.app-shell {
+  display: flex;
+  max-width: var(--shell-max-w);
+  margin: 0 auto;
+  min-height: 100vh;
+  /* Above .bonsai-ghost's fixed z-index: 0 — a positioned element paints over
+     non-positioned in-flow content otherwise, which would put the background
+     tree on top of the page text. */
+  position: relative;
+  z-index: 1;
+}
+
+.app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  padding: var(--s6) var(--s5);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  font-size: 13px;
+  border-right: 1px solid var(--border);
+  animation: sidebar-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes sidebar-fade-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  /* flex: 1 rather than height: 100% — as a flex item, growing to fill the
+     sidebar is what actually gives the footer's `margin-top: auto` free
+     space to push into. With a percentage height it collapsed toward
+     content height and the footer sat mid-rail instead of at the bottom. */
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar-header {
+  margin-bottom: var(--s5);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sidebar-cmdk {
+  color: var(--muted);
+  opacity: 0.7;
+  font-size: 15px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.2s ease, opacity 0.2s ease;
+  white-space: nowrap;
+}
+
+.sidebar-cmdk:hover,
+.sidebar-cmdk:focus-visible {
+  color: var(--fg);
+  opacity: 1;
+}
+
+.sidebar-prompt {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.sidebar-prompt-user {
+  color: var(--accent-2);
+}
+
+.sidebar-prompt-sep {
+  color: var(--muted);
+}
+
+.sidebar-prompt-path {
+  color: var(--fg);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  color: var(--muted);
+  font-size: 14px;
+  font-family: var(--font-mono), monospace;
+  padding: var(--s1) 0;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.sidebar-link::before {
+  content: '';
+  position: absolute;
+  left: -21px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 6px 1px color-mix(in oklch, var(--accent), transparent 40%);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+
+.sidebar-link:hover,
+.sidebar-link:focus-visible {
+  color: var(--fg);
+}
+
+.sidebar-link[data-current='true'] {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.sidebar-link[data-current='true']::before {
+  transform: scaleY(1);
+}
+
+.sidebar-link-kanji {
+  color: var(--muted);
+  font-size: 11px;
+  opacity: 0.45;
+}
+
+/* Rule: draws in top-to-bottom on load, then a one-time light sweep — this
+   component mounts exactly once (rendered from layout.tsx, not per page),
+   so the animation plays once per visit, not once per tab switch. */
+/* The bar fills in once on load, then a bright band travels through it
+   forever. `overflow: hidden` clips the traveling band to the bar's length,
+   which also clips any box-shadow on the children — so the bloom lives on
+   the parent as a filter instead, which paints outside the 1px box because
+   filters apply after the child clipping. */
+.sidebar-rule {
+  position: relative;
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  margin: var(--s5) 0;
+  overflow: hidden;
+  flex-shrink: 0;
+  filter:
+    drop-shadow(0 0 3px color-mix(in oklch, var(--accent-2) 40%, transparent))
+    drop-shadow(0 0 8px color-mix(in oklch, var(--accent-2) 20%, transparent));
+}
+
+.sidebar-rule::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-2);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: sidebar-rule-draw 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.sidebar-rule::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--accent-2) 55%, white),
+    transparent
+  );
+  transform: translateX(-140%);
+  animation: sidebar-rule-flow 2.6s linear 0.85s infinite;
+}
+
+@keyframes sidebar-rule-draw {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes sidebar-rule-flow {
+  from { transform: translateX(-140%); }
+  to   { transform: translateX(340%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-rule::before {
+    animation: none;
+    transform: none;
+  }
+  .sidebar-rule::after {
+    animation: none;
+    opacity: 0;
+  }
+  .sidebar-link::before {
+    transition: none;
+  }
+  .sidebar {
+    animation: none;
+  }
+}
+
+/* Legacy per-page centering hook — now a no-op passthrough since centering
+   happens at the .app-content level in the shared shell. Kept only so any
+   page still carrying the class doesn't lose its width. */
+.page-with-sidebar {
+  width: 100%;
+  min-height: 100vh;
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .app-content {
+    display: block;
+  }
+
+  .page-with-sidebar {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* Below the point where a fixed rail plus centered content stops being
+     comfortable, the sidebar collapses into a slim top bar instead —
+     same links, same rule animation, laid out horizontally. */
+  .sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: var(--s5) 24px 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    animation: none;
+  }
+
+  .sidebar-inner {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    height: auto;
+    gap: var(--s5);
+  }
+
+  .sidebar-header {
+    margin-bottom: 0;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    gap: var(--s4);
+  }
+
+  .sidebar-link::before {
+    left: 0;
+    bottom: -6px;
+    top: auto;
+    width: 100%;
+    height: 2px;
+    transform: scaleX(0);
+  }
+
+  .sidebar-link[data-current='true']::before {
+    transform: scaleX(1);
+  }
+
+  .sidebar-rule {
+    display: none;
+  }
+
+  /* Top-bar layout: the footer's auto top margin means nothing in a row,
+     so push it to the trailing edge instead. */
+  .sidebar-footer {
+    margin-top: 0;
+    margin-left: auto;
+  }
+}
+
+/* ── Spotify widget: fixed to the viewport. The app shell is centered with
+   its own max-width, so on wide screens there is empty viewport space to
+   the shell's left — the widget must clear the sidebar's actual position
+   (shell offset + sidebar width), not just the sidebar's width alone. ── */
+.spotify-widget {
+  left: max(32px, calc((100vw - var(--shell-max-w)) / 2 + var(--sidebar-w) + 32px));
+}
+
+@media (max-width: 860px) {
+  .spotify-widget {
+    left: 32px;
   }
 }
