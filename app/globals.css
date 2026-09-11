@@ -467,7 +467,7 @@ a {
    same "this matters" treatment as the one link recruiters most need. */
 .intro-name {
   cursor: pointer;
-  color: var(--accent);
+  color: white;
 }
 
 /* Tagline under the name. Carries the rest of the gap down to the first
