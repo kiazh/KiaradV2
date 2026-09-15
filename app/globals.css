@@ -688,6 +688,19 @@ a {
   opacity: 1;
 }
 
+/* Short ⌘K label is mobile-only; full "⌘ + K" is desktop-only. */
+.sidebar-cmdk-short {
+  display: none;
+}
+
+/* Hamburger trigger + drawer live only at <=860px (see media query below).
+   Hidden on desktop so the rail is byte-identical to before. */
+.sidebar-menu-btn,
+.sidebar-scrim,
+.sidebar-drawer {
+  display: none;
+}
+
 .sidebar-prompt {
   display: flex;
   align-items: baseline;
@@ -857,18 +870,26 @@ a {
     width: 100%;
   }
 
-  /* Below the point where a fixed rail plus centered content stops being
-     comfortable, the sidebar collapses into a slim top bar instead —
-     same links, same rule animation, laid out horizontally. */
+  /* Mobile top bar: prompt + actions only. Nav links moved into the drawer
+     so prompt + links + ⌘K never crowd a 320px viewport. Sticky with a
+     backdrop so context survives scroll; safe-area keeps clear of notch. */
   .sidebar {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 60;
     width: 100%;
     height: auto;
     flex-direction: row;
     align-items: center;
-    padding: var(--s5) 24px 0;
+    padding-top: max(var(--s3), env(safe-area-inset-top));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: var(--s3);
+    padding-left: max(16px, env(safe-area-inset-left));
     border-right: none;
     border-bottom: 1px solid var(--border);
+    background: color-mix(in oklch, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     animation: none;
   }
 
@@ -877,16 +898,39 @@ a {
     align-items: center;
     width: 100%;
     height: auto;
-    gap: var(--s5);
+    gap: var(--s3);
   }
 
   .sidebar-header {
     margin-bottom: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
   }
 
-  .sidebar-nav {
-    flex-direction: row;
-    gap: var(--s4);
+  /* Truncate, never wrap: the path ellipsizes instead of pushing actions off. */
+  .sidebar-prompt {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 100%;
+  }
+
+  .sidebar-prompt-user,
+  .sidebar-prompt-sep {
+    flex-shrink: 0;
+  }
+
+  .sidebar-prompt-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  /* Inline link row is desktop-only now; mobile uses the drawer. */
+  .sidebar-nav-inline {
+    display: none;
   }
 
   .sidebar-link::before {
@@ -911,6 +955,198 @@ a {
   .sidebar-footer {
     margin-top: 0;
     margin-left: auto;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+  }
+
+  /* 44px touch targets; short ⌘K label saves ~20px on narrow screens. */
+  .sidebar-cmdk {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+  }
+
+  .sidebar-cmdk-full {
+    display: none;
+  }
+
+  .sidebar-cmdk-short {
+    display: inline;
+  }
+
+  .sidebar-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 10px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--fg);
+    font-family: inherit;
+  }
+
+  .sidebar-menu-btn:hover,
+  .sidebar-menu-btn:focus-visible {
+    border-color: var(--muted);
+  }
+
+  .sidebar-menu-icon {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .sidebar-menu-icon > span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+
+  /* Scrim + drawer: fixed, above content, below palette (99/100). */
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: color-mix(in oklch, black 55%, transparent);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+
+  .sidebar-scrim[data-open='true'] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .sidebar-drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80;
+    width: min(320px, 84vw);
+    max-height: 100dvh;
+    overflow-y: auto;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    padding-top: max(var(--s4), env(safe-area-inset-top));
+    padding-right: max(var(--s4), env(safe-area-inset-right));
+    padding-bottom: max(var(--s4), env(safe-area-inset-bottom));
+    padding-left: var(--s4);
+    transform: translateX(102%);
+    visibility: hidden;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s ease;
+  }
+
+  .sidebar-drawer[data-open='true'] {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .sidebar-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s3);
+    margin-bottom: var(--s4);
+  }
+
+  .sidebar-drawer-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--fg);
+    font-size: 15px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .sidebar-drawer-close:hover,
+  .sidebar-drawer-close:focus-visible {
+    border-color: var(--muted);
+  }
+
+  .sidebar-drawer-nav {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-drawer-link {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s3);
+    min-height: 52px;
+    padding: 14px 4px;
+    color: var(--muted);
+    font-size: 16px;
+    border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  }
+
+  .sidebar-drawer-link:hover,
+  .sidebar-drawer-link:focus-visible {
+    color: var(--fg);
+  }
+
+  .sidebar-drawer-link[data-current='true'] {
+    color: var(--fg);
+    font-weight: 500;
+  }
+
+  .sidebar-drawer-foot {
+    margin-top: auto;
+    padding-top: var(--s5);
+  }
+
+  .sidebar-drawer-cmdk {
+    width: 100%;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 12px 14px;
+    cursor: pointer;
+  }
+
+  .sidebar-drawer-cmdk:hover,
+  .sidebar-drawer-cmdk:focus-visible {
+    border-color: var(--muted);
+  }
+}
+
+@media (max-width: 860px) and (prefers-reduced-motion: reduce) {
+  .sidebar-scrim,
+  .sidebar-drawer {
+    transition: none;
   }
 }
 
