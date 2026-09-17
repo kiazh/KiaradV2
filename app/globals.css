@@ -171,11 +171,11 @@ a {
 
 .bonsai-ghost {
   /* foliage from the site's moss green, wood from its accent — each with a
-     darkened tier for the shadowed face of that material */
-  --bn-leaf-dark: color-mix(in oklch, var(--accent-2), black 30%);
-  --bn-leaf-bright: var(--accent-2);
-  --bn-wood-dark: color-mix(in oklch, var(--accent), black 34%);
-  --bn-wood-bright: var(--accent);
+      darkened tier for the shadowed face of that material */
+  --bn-leaf-dark: color-mix(in oklch, var(--accent-2), black 10%);
+  --bn-leaf-bright: color-mix(in oklch, var(--accent-2), white 8%);
+  --bn-wood-dark: color-mix(in oklch, var(--accent), black 12%);
+  --bn-wood-bright: color-mix(in oklch, var(--accent), white 6%);
   --bn-text: var(--muted);
 
   position: fixed;
@@ -188,15 +188,14 @@ a {
   line-height: 1.12;
   white-space: pre;
   color: var(--bn-leaf-dark);
-  /* One flat wash. Low enough to stay background, high enough that the four
-     material tints still resolve as distinct rather than collapsing into one
-     tone — below roughly 0.12 they stop separating. This is the dial. */
-  opacity: 0.15;
+  /* One flat wash. Present enough to read as a tree, soft enough to stay
+      scenery behind body copy. Opacity is the dial. */
+  opacity: 0.24;
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  mask-image: linear-gradient(to top, black 46%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to top, black 46%, transparent 100%);
+  mask-image: linear-gradient(to top, black 58%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, black 58%, transparent 100%);
 }
 
 .bn-ld { color: var(--bn-leaf-dark); }
