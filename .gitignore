@@ -55,3 +55,7 @@ dev-err.log
 
 # local verification scripts
 *-probe.mjs
+
+# python bytecode
+__pycache__/
+*.pyc

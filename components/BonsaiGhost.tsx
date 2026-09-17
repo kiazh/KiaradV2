@@ -8,6 +8,9 @@
  *   cc -o cbonsai cbonsai.c -lncurses -lpanel   # macOS lib names
  *   ./cbonsai --print --life 52 --multiplier 5 --seed 26  # in a 29x96 pty
  *
+ * To regrow or hunt for a replacement, see tools/bonsai/ (capture, parse
+ * and sweep scripts plus the tuning notes from the last hunt).
+ *
  * The pty geometry is part of the recipe, not incidental: cbonsai sizes growth
  * to the terminal, so this same seed at a different row count yields a
  * different tree. A deliberately short pty is what makes this one wide and low
