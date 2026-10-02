@@ -119,8 +119,8 @@ export const currently: CurrentItem[] = [
   },
   {
     label: 'building',
-    value: 'a C compiler (fried)',
-    href: 'https://github.com/kiazh/C-compiler',
+    value: 'Agent Harness',
+    href: 'https://github.com/kiazh/Harness-',
   },
   {
     label: 'learning',
