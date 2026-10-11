@@ -129,7 +129,7 @@ export const currently: CurrentItem[] = [
   {
     label: 'resume',
     value: 'view resume',
-    href: '/resume.pdf',
+    href: 'https://drive.google.com/file/d/1iVQDTHbq3gcxyZCjN1gqKhMSPSfDgHuS/view?usp=sharing',
     emphasize: true,
   },
 ]
